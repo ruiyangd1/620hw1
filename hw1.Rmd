@@ -1,0 +1,204 @@
+---
+title: "620HW1"
+author: "Ruiyang Dong"
+date: "2024-02-05"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(readxl)
+library(dplyr)
+library(lubridate)
+library(ggplot2)
+```
+github link: https://github.com/ruiyangd1/620hw1
+
+## Part I
+
+### 1.a. Describe the purpose of the data collection, in which you state a scientific hypothesis of interest to justify your effort of data collection. Cite at least one reference to support your proposed hypothesis to be investigated. This hypothesis may be the one of a few possible hypotheses that you like to investigate in your first group project with your teammates.
+The study aims to understand individual behaviors using mobile devices by measuring screen use activities like screen time, number of pickups, and first pickup time, focusing particularly on social media app usage. The hypothesis is there is a correlation between workday social time and weekend social time 
+Reference: Jory.M “Screen time stats 2019: Here’s how much you use your phone during the workday”, march 2019 https://blog.rescuetime.com/screen-time-stats-2018/
+
+### 1.b. Explain the role of Informed Consent Form in connection to the planned study and data collection.
+The Informed Consent Form is essential for ensuring that participants understand the nature of the study, their role, potential risks, and their rights, which include voluntary participation and the freedom to withdraw at any time without consequence.
+
+### 1.c. Describe the data collection plan, including when the data is collected, which types of variables in the data are collected, where the data is collected from, and how many data are collected before the data freeze. You may use tables to summarize your answers if necessary.
+The data was collected from my own phone’s screen time with variables screen time, number of pickups, and the first pickup time, also the total time in minutes and total social time. There is a total of 11 days of data collected before the data freeze(Jan. 26. 2024).
+
+
+### 1.d Create and add two new variables into your dataset; they are, “daily proportion of social screen time” (defined as the ratio of daily total social screen time over daily total screen time) and “daily duration per use” (defined as the ratio of daily total screen time over daily total of pickups).
+```{r}
+
+
+data <- read_excel("screen time.xlsx")
+data
+data$Date <- as.Date(data$Date, format = "%m/%d/%Y")
+freeze_data <- filter(data, Date <= as.Date("2024-01-26"))
+freeze_data
+```
+
+
+```{r}
+freeze_data <- freeze_data %>%
+  mutate(daily_proportion_of_social_screen_time = Social.ST.min / Total.ST.min,
+         daily_duration_per_use = Total.ST.min / Pickups)
+freeze_data
+```
+### 2.a Make a time series plot of each of the five variables in your data. Describe temporal patterns from these time series plots.
+```{r}
+ggplot(freeze_data, aes(x = Date, y = Total.ST.min)) +
+  geom_line() +
+  labs(title = "Daily Total ST", x = "Date", y = "Screen Time (min)")
+
+ggplot(freeze_data, aes(x = Date, y = Social.ST.min)) +
+  geom_line() +
+  labs(title = "Daily Total SST", x = "Date", y = "Social Screen Time (min)")
+
+ggplot(freeze_data, aes(x = Date, y = Pickups)) +
+  geom_line() +
+  labs(title = "Daily # of Pickups", x = "Date", y = "Number of Pickups")
+
+ggplot(freeze_data, aes(x = Date, y = daily_proportion_of_social_screen_time)) +
+  geom_line() +
+  labs(title = "Daily Proportion of SST", x = "Date", y = "Proportion")
+
+ggplot(freeze_data, aes(x = Date, y = daily_duration_per_use)) +
+  geom_line() +
+  labs(title = "Daily Duration Per Use", x = "Date", y = "Duration Per Use (min)")
+```
+1. Daily Total Screen Time:
+There appears to be a increase in screen time and then a decrease during the weekend time and then sharp increase the following weekdays which also include the pick at Jan 23rd, followed by a sharp decrease.
+
+
+2.Daily Total Social Screen Time:
+same as the Daily Total Screen Time plot, first appear an increase then decrease, and then increase again the following weekdays, and back to low once it reach the next weekend.
+
+3.Daily Number of Pickups:
+Mostly above 100 or even 120, but sharply decrease at the Jan19th-21th time periods.
+
+4.Daily Proportion of Social Screen Time:
+The proportion of social screen time showing increases untill Jan22nd and then repeating drop then increase for 4 day time period.
+
+5.Daily Duration Per Use:
+It indicates that there are weekdays with longer average usage per pickup and other days with shorter durations but everytime is less than 7mins.
+
+
+### 2.b Make pairwise scatterplots of five variables. Describe correlation patterns from these pairwise scatterplots. Which pair of variables among the five variables has the highest correlation?
+```{r}
+library(GGally)
+
+ggpairs(freeze_data[, c("Total.ST.min", "Social.ST.min", "Pickups", "daily_proportion_of_social_screen_time", "daily_duration_per_use")])
+```
+From the plots the total ST and social ST have the highest correlation and positive correlation as well. There are similar moderate positive correlations around 0.75 between totalST and daily_proportion_of_social_screen_time and socialST with daily_proportion_of_social_screen_time. 
+
+### 2.c Make an occupation time curve for each of the five time series. Explain the pattern of individual curves.
+```{r}
+ggplot(freeze_data, aes(x = Total.ST.min)) +
+  stat_function(fun = function(x) 1 - ecdf(freeze_data$Total.ST.min)(x), geom = "step") +
+  labs(title = "Occupation Time Curve for Total Screen Time", x = "Total Screen Time (min)", y = "P( X >= c )")
+
+ggplot(freeze_data, aes(x = Social.ST.min)) +
+  stat_function(fun = function(x) 1 - ecdf(freeze_data$Social.ST.min)(x), geom = "step") +
+  labs(title = "Occupation Time Curve for Social Screen Time", x = "Social Screen Time (min)", y = "P( X >= c )")
+
+ggplot(freeze_data, aes(x = Pickups)) +
+  stat_function(fun = function(x) 1 - ecdf(freeze_data$Pickups)(x), geom = "step") +
+  labs(title = "Occupation Time Curve for Number of Pickups", x = "Number of Pickups", y = "P( X >= c )")
+
+ggplot(freeze_data, aes(x = daily_proportion_of_social_screen_time)) +
+  stat_function(fun = function(x) 1 - ecdf(freeze_data$daily_proportion_of_social_screen_time)(x), geom = "step") +
+  labs(title = "Occupation Time Curve for Daily Proportion of Social Screen Time", x = "Proportion of Social Screen Time", y = "P( X >= c )")
+
+ggplot(freeze_data, aes(x = daily_duration_per_use)) +
+  stat_function(fun = function(x) 1 - ecdf(freeze_data$daily_duration_per_use)(x), geom = "step") +
+  labs(title = "Occupation Time Curve for Daily Duration Per Use", x = "Duration Per Use (min)", y = "P( X >= c )")
+```
+1. Occupation Time Curve of Total Screen Time:
+The curve begins high, indicating a large proportion of days with less overall screen time. As screen time grows, the likelihood of days with more than a specific amount of screen time drops, indicating that greater total screen time values are less common.
+
+2. Occupation Time Curve of Social Screen Time:
+Similar to total screen time.
+
+3. Occupation Time Curve of Number of Pickups:
+Similar as well. And the drop-off shows there are no specific number of pickups that is significantly noted since there is no sharp drop.
+
+4. Occupation Time Curve of Daily Proportion of Social Screen Time:
+The curve drop slowly, which suggests that a large proportion of days with less Proportion of Social Screen Time. 
+
+5. Occupation Time Curve of Daily Duration Per Use:
+The graph suggests that the majority of days have a shorter time per use, with high durations being fairly uncommon.
+
+### 2.d Use the R function acf to display the serial dependence for each of the five time series. Are there any significant autocorrelations? Explain your results. Note that in this R function, you may set plot=FALSE to yield values of the autocorrelations.
+```{r}
+acf(freeze_data$Total.ST.min, plot = FALSE)
+acf(freeze_data$Social.ST.min, plot = FALSE)
+acf(freeze_data$Pickups, plot = FALSE)
+acf(freeze_data$daily_proportion_of_social_screen_time, plot = FALSE)
+acf(freeze_data$daily_duration_per_use, plot = FALSE)
+```
+from the above tables I think there is significant auto-correlations.
+
+### 3.a Transform (or covert) the time of first pickup to an angle ranged from 0 to 360 degree, treating midnight as 0 degree. For example, 6AM is 90 degree and noon is 180 degree
+```{r}
+library(circular)
+
+freeze_data = freeze_data %>% 
+  mutate(Pickup.1st.angular = (hour(Pickup.1st)*60 + minute(Pickup.1st))/(24*60)*360)
+freeze_data$Pickup.1st.angular
+```
+### 3.b Make a scatterplot of the first pickup data on a 24-hour clock circle. Describe basic patterns from this scatterplot in terms of personal habit of first pickup
+```{r}
+first.pickup.cir = circular(freeze_data$Pickup.1st.angular,units = "degrees",template = "clock24")
+plot(first.pickup.cir,col = "blue")
+```
+From the clock we can see the first pick up time is between 7:00 to 10:00 but often from 9-10.
+
+### 3.c Make a histogram plot on the circle in that you may choose a suitable bin size to create stacking.For example, you may set a bin size at 2.5 degree, which corresponds an interval of 10 minutes.Adjust the bin size to create different forms of histogram, and explain the reason that you choose a particular value to report your final histogram plot
+```{r}
+plot(first.pickup.cir,stack = TRUE,bins = 96,col = "blue")
+```
+Bin size= 96 which means every 15 mins. The reason for it is because I like to set my alarm in a 15 mins period in daily life(such as 7:30 or 7:45).
+
+## Part II
+### 4.a Explain why the factor St is needed in the Poisson distribution above
+$S_t$ is needed in the Poisson distribution is because events are assumed to occur independently and at a fixed average rate in the Poisson model. 
+
+### 4.b Use the R function glm to estimate the rate parameter lambda in which ln(St) is included in the model as an offset.
+```{r}
+glmmodel <- glm(Pickups ~ offset(log(Total.ST.min/60)), family = poisson, data = freeze_data)
+summary(glmmodel)
+```
+
+### 4.c.1 Is there data evidence for significantly different behavior of daily pickups between weekdays and weekends? Justify your answer using the significance level alpha = 0.05.
+```{r}
+freeze_data$Xt <- ifelse(wday(freeze_data$Date) %in% 2:6, 1, 0)
+
+freeze_data$Zt <- ifelse(freeze_data$Date >= as.Date("2023-01-10"), 1, 0)
+
+glmmodel <- glm(Pickups ~ Xt + Zt + offset(log(Total.ST.min/60)), family = poisson, data = freeze_data)
+
+summary(glmmodel)
+```
+P-value of St < 0.05, which means It's statistically significant in there is difference between the number of pickups at weekdays and the number of pickups at the weekends.
+
+### 4.c.2 Is there data evidence for a significant change on the behavior of daily pickups after the winter semester began? Justify your answer using the significance level alpha = 0.05.
+Since the screentime first date of collection is Jan. 16th which ALL Zt is NA value. 
+
+### 5.a  Use the R function mle.vonmises from the R package circular to obtain the estimates of the two model parameters mu and lambda from your data of first pickups.
+```{r}
+a <- mle.vonmises(freeze_data$Pickup.1st.angular)
+a
+```
+The estimate for Mu is -1.431 with standard error 0.4171. and the estimate for Kappa value is 1.092 with sd 0.522.
+
+### 5.b Based on the estimated parameters from part (a), use the R function pvonmises from the R package circular to calculate the probability that your first pickup is 8:30AM or later.
+```{r}
+p_830 <- pvonmises((8.5/24)*2*pi, mu = a$mu, kappa = a$kappa)
+p830_plus <- 1 - p_830
+p830_plus
+
+```
+Follow the calculation, the probability that your first pickup is 8:30AM or later is 97.82%.
